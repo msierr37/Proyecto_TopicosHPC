@@ -29,10 +29,10 @@ http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-meas
 *K-means es un método de agrupamiento, que tiene como objetivo la partición de un conjunto de n observaciones en k grupos en el que cada observación pertenece al grupo cuyo valor medio es más cercano. Es un método utilizado en minería de datos. El código para el Kmeans se obtuvo de varios links y repositorios de dónde se trató de entender su funcionamiento y gracias a los cuáles se pudo realizar el KMeans que se encuentra en los programas realizados.*
 # 5. Análisis de solución:
 *Al correr los dos programas, cada uno con una cantidad de 100 documentos se observaron los siguientes aspectos*
-![Comando HTOP corriendo el programa en serial](/imagenes/htopSerial.png)
-![Tiempo de ejecución del programa en serial](/imagenes/serialTime.png)
-![Comando HTOP corriendo el programa en paralelo](/imagenes/htopParallel.png)
-![Tiempo de ejecución del programa en paralelo](/imagenes/parallelTime.png)
+1. ![Comando HTOP corriendo el programa en serial](/imagenes/htopSerial.png)
+2. ![Tiempo de ejecución del programa en serial](/imagenes/serialTime.png)
+3. ![Comando HTOP corriendo el programa en paralelo](/imagenes/htopParallel.png)
+4. ![Tiempo de ejecución del programa en paralelo](/imagenes/parallelTime.png)
 # 6.Bibliografía:
 1. http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
 2. https://es.wikipedia.org/wiki/K-means
