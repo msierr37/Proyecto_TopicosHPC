@@ -13,7 +13,6 @@ def obtTFiles(rootDir):
             archivo = open(rootDir + archivo, 'r')
 
             #Éstas son las palabras que se deben eliminar de cada archivo que se lee
-
             stopwords = ["a", "able", "about", "above", "according", "accordingly", "across", "actually", "after",
                          "afterwards", "again", "against", "all", "allow", "allows", "almost", "alone", "along",
                          "already", "also", "although", "always", "am", "among", "amongst", "an", "and", "another",
@@ -82,7 +81,7 @@ def obtTFiles(rootDir):
                             principalwords[palabra] += 1
                         else:
                             principalwords[palabra] = 1
-
+            #Éste arreglo contiene las palabras principales de cada archivo de forma ordenada
             sorted_mainwords = sorted(principalwords.items(), key=operator.itemgetter(1))[::-1]
 
             finalwords = {}
@@ -127,33 +126,24 @@ def jaccard(fdt):
 
     for i in range(tam):
         for j in range(tam):
-            matrizI[i][j] = 1.0 - (jaccard_similarity(fdt[listaArchi[i]], fdt[listaArchi[j]]))
 
+            #Ésta resta se hace ya que el jaccard devuelve la igualdad de los archivos
+            #y necesitamos saber la distancia que hay entre ellos.
+            matrizI[i][j] = 1.0 - (jaccard_similarity(fdt[listaArchi[i]], fdt[listaArchi[j]]))
     return matrizI
 
 
 #Éste método es el que realiza la función (Intersección/Unión) que nos sirve para obtener las distancias entre dos archivos
+#Fue tomado de la siguiente página donde estaba muy bien explicado -->http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
 def jaccard_similarity(x, y):
     intersectionC = len(set.intersection(*[set(x), set(y)]))
-    # print(intersectionC)
     unionC = len(set.union(*[set(x), set(y)]))
-    # print(list(set.union(*[set(x), set(y)])))
     return intersectionC / float(unionC)
 
 #Éste es el método que sirve para saber que centro tiene cada grupo de archivos y para recalcular ese centro
 def kMeans(X, K, maxIters=10, plot_progress=None):
     centroidesI = X[np.random.choice(np.arange(len(X)), K), :]
-    for i in range(maxIters):
-        # Cluster Assignment step
-        C = np.array([np.argmin([np.dot(x_i - y_k, x_i - y_k) for y_k in centroidesI]) for x_i in X])
-        #print(np.array([np.argmin([np.dot(x_i - y_k, x_i - y_k) for y_k in centroidesI]) for x_i in X]))
-        # Move centroidesI step
-        centroidesI = [X[C == k].mean(axis=0) for k in range(K)]
-        if plot_progress != None: plot_progress(X, C, np.array(centroidesI))
-    return np.array(centroidesI), C
-
-def kMeans2(X, K, maxIters=10, plot_progress=None):
-    centroidesI = X[np.random.choice(np.arange(len(X)), K), :]
+    #Aquí es donde se asigna cada archivo que se está analizando a su cluster.
     C = []
     for i in range(maxIters):
         argminList = []
@@ -164,6 +154,7 @@ def kMeans2(X, K, maxIters=10, plot_progress=None):
             argminList.append(np.argmin(dotList))
         C = np.array(argminList)
         centroidesTemp = []
+        #Aquí es dónde se recalcula el centro.
         for k in range(K):
             tfArr = C == k
             propiosKArr = X[tfArr]
@@ -172,17 +163,19 @@ def kMeans2(X, K, maxIters=10, plot_progress=None):
         centroidesI = centroidesTemp
     return np.array(centroidesI), C
 
+#Éste es el main del archivo en dónde se llaman a las funciones necesarias para que el programa funcione,
+#también aquí se muestran los archivos que harán parte de cada uno de los clusters.
 if __name__ == '__main__':
     timeini = time.time()
     k = 2
     rootDir = sys.argv[1]
     T = obtTFiles(rootDir)
     fdt = ft(T)
-    print(time.time()-timeini)
+    #print(time.time()-timeini)
 
     matrizJaccard = jaccard(fdt)
 
-    centroides, finalList = kMeans2(matrizJaccard, k)
+    centroides, finalList = kMeans(matrizJaccard, k)
     print("Tiempo final: ", time.time() - timeini)
 
     listaArchi = list(fdt.keys())
