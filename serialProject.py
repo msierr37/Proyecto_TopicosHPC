@@ -133,15 +133,17 @@ def jaccard(fdt):
     return matrizI
 
 
-#Éste método es el que realiza la función (Intersección/Unión) que nos sirve para obtener las distancias entre dos archivos
-#Fue tomado de la siguiente página donde estaba muy bien explicado -->http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
+#Éste método es el que realiza la función (SumMin/SumMax) que nos sirve para obtener las distancias entre dos archivos
+#La base se tomó de la siguiente página donde estaba muy bien explicado -->http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
 def jaccard_similarity(x, y):
-    intersectionC = len(set.intersection(*[set(x), set(y)]))
-    unionC = len(set.union(*[set(x), set(y)]))
-    return intersectionC / float(unionC)
+    intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
+    # print(intersection_cardinality)
+    union_cardinality = len(set.union(*[set(x), set(y)]))
+    # print(list(set.union(*[set(x), set(y)])))
+    return intersection_cardinality / float(union_cardinality)
 
 #Éste es el método que sirve para saber que centro tiene cada grupo de archivos y para recalcular ese centro
-def kMeans(X, K, maxIters=10, plot_progress=None):
+def kMeans(X, K, maxIters=10):
     centroidesI = X[np.random.choice(np.arange(len(X)), K), :]
     #Aquí es donde se asigna cada archivo que se está analizando a su cluster.
     C = []
@@ -157,8 +159,8 @@ def kMeans(X, K, maxIters=10, plot_progress=None):
         #Aquí es dónde se recalcula el centro.
         for k in range(K):
             tfArr = C == k
-            propiosKArr = X[tfArr]
-            promedioArr = propiosKArr.mean(axis=0)
+            nCentKArr = X[tfArr]
+            promedioArr = nCentKArr.mean(axis=0)
             centroidesTemp.append(promedioArr)
         centroidesI = centroidesTemp
     return np.array(centroidesI), C
@@ -177,15 +179,13 @@ if __name__ == '__main__':
 
     centroides, finalList = kMeans(matrizJaccard, k)
     print("Tiempo final: ", time.time() - timeini)
-
+    clusters={}
     listaArchi = list(fdt.keys())
-    cluster0 = []
-    cluster1 = []
     for i in range(len(listaArchi)):
-        if finalList[i] == 0:
-            cluster0.append(listaArchi[i])
+        if finalList[i] in clusters:
+            clusters[finalList[i]].append(listaArchi[i])
         else:
-            cluster1.append(listaArchi[i])
+            clusters[finalList[i]]=[listaArchi[i]]
 
-    print("Cluster 0: ", cluster0)
-    print("Cluster 1: ", cluster1)
+    for i in clusters:
+        print ("Cluster "+str(i)+" ",clusters[i])
