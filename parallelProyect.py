@@ -2,12 +2,9 @@
 import operator, os, sys
 import time
 import numpy as np
-import pylab as plt
 from mpi4py import MPI
 comm = MPI.COMM_WORLD
-sendbuf = []
 root = 0
-plt.ion()
 
 stopwords = ["a", "able", "about", "above", "according", "accordingly", "across", "actually", "after",
                 "afterwards", "again", "against", "all", "allow", "allows", "almost", "alone", "along",
@@ -63,7 +60,7 @@ stopwords = ["a", "able", "about", "above", "according", "accordingly", "across"
                 "whither", "who", "whoever", "whole", "whom", "whose", "why", "will", "willing", "wish",
                 "with", "within", "without", "wonder", "would", "would", "x", "y", "yes", "yet", "you", "your",
                 "yours", "yourself", "yourselves", "z", "zero"]
-
+#Funcion de jaccard que encuentra la distancia entre dos documentos
 def jaccard_similarity(x, y):
     intersection_cardinality = len(set.intersection(*[set(x), set(y)]))
     # print(intersection_cardinality)
@@ -89,10 +86,11 @@ if __name__ == '__main__':
         mainwords = {}
         for line in file:
             #Se accede a cada palabra para mirar si es relevante, si lo es se agrega a un diccionario de 
-            #Palabras relevantes y las veces que aparecieron para tomar las más significativas por documento 
-            for word in line.split():
-                word = word.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-",""
+            #Palabras relevantes y las veces que aparecieron para tomar las más significativas por documento
+            line = line.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-",""
                 ).replace(".", "").replace("\"", "").replace("]", "").replace("[", "").replace(")", "").replace("(", "")
+            for word in line.split():
+#--------------------Se puede cambiar por colection y hacer el reemplazo para toda la linea
                 if word not in stopwords:
                     if word in mainwords and word != '':
                         mainwords[word] += 1
@@ -122,11 +120,10 @@ if __name__ == '__main__':
 
         file = open(rootDir + v[i], 'r')
         for line in file:
-
-            for word in line.split():
-                word = word.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-",
+            line = line.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-",
                                                                                                        "").replace(
                     ".", "").replace("\"", "").replace("]", "").replace("[", "").replace(")", "").replace("(", "")
+            for word in line.split():
                 if word in w:
                     result[w.index(word)] += 1
 
@@ -145,11 +142,10 @@ if __name__ == '__main__':
     tam = len(x)
     matrixC = np.zeros((tam, tam))
     listaFiles = list(x.keys())
-    #print("listaFiles: ",listaFiles)
-    for i in range(comm.rank, len(x), comm.size):
+    #A cada archivo se le mira la distancia con respecto a los otros llamando la funcion de jacard con cada par de archivos
+    for i in range(comm.rank, tam, comm.size):
         for j in range(tam):
             matrixC[i][j] = 1.0 - (jaccard_similarity(x[listaFiles[i]], x[listaFiles[j]]))
-    #print("matrix: " ,matrixC)
     recibMatrixC = comm.gather(matrixC, root)
     C = []
     centroids = []
@@ -160,51 +156,56 @@ if __name__ == '__main__':
         #print(matrizFinal)
 
     #Kmeans
+        #se toma el centroide que es un elemento de la matriz de los pesos 
+        #osea un vector de n posiciones 
         centroids = matrizFinal[np.random.choice(np.arange(len(matrizFinal)), k), :]
 
+    #Se hace el algoritmo de kmeans maxIters veces
     for i in range(maxIters):
-        #print("Rank: ", comm.rank, "iter: ", i)
         mJack = comm.bcast(matrizFinal,root)
         cent = comm.bcast(centroids, root)
         tam2 = len(mJack)
         argminList = np.zeros(tam2)
 
-        for i in range(comm.rank, len(mJack), comm.size):
+        for i in range(comm.rank,tam2, comm.size):
             dotList = []
+            #se hace el producto punto con los dos centroides para saber a cual está más cercano al documento
             for y_k in cent:
+                #el producto punto se hace con el mismo para evitar distancias negativas con las restas que se
+                #están haciendo
                 dotList.append(np.dot(mJack[i] - y_k, mJack[i] - y_k))
-            #print("DOTLIST", dotList)
             argminList[i] = np.argmin(dotList)
-        #print("ARGMING" , argminList)
+        
         recibC = comm.gather(argminList, root)
-        #print("RECIBC"+str(recibC[0]))
         cFinal = []
         if comm.rank == 0:
+            #se reciben los resultados de los procesadores que dice cual centroide está más cerca a cada documento
+            #y se juntan en un sólo arreglo
             cFinal = np.zeros(len(recibC[0]))
             for li in range(len(recibC)):
                 cFinal += recibC[li]
-            #print("CFINAL", cFinal)
 
         z = comm.bcast(cFinal,root)
 
         centroidesTemp = []
         for i in range(k):
             centroidesTemp.insert(i, [])
-
-        #print("CENTMP", centroidesTemp)
+        
+        #Se calcula el promedio de las distancias de los documentos para calcular los nuevos k centroides
+        #Cada procesador crea los dos centroides temporales
         for i in range(comm.rank, k, comm.size):
             truefalseArr = z == i
             propiosKArr = mJack[truefalseArr]
             promedioArr = propiosKArr.mean(axis=0)
-            #print("promedio: ", promedioArr, "RANK", comm.rank)
             centroidesTemp[i]=list(promedioArr)
-        #print("CENTRO", centroidesTemp, "RANK",comm.rank)
 
 
         recibZ = comm.gather(centroidesTemp,root)
         centroidesFinales = []
         for j in range(k):
             centroidesFinales.append([])
+        #El master recibe los nuevos centroides temporales de cada procesador y los convierte en 
+        #una lista de k centroides que serían los nuevos para la siguiente iteración 
         if comm.rank == 0:
             #print("FINAL", recibZ)
             for i in range(len(recibZ)):
@@ -215,13 +216,14 @@ if __name__ == '__main__':
     if comm.rank == 0:
         print("Tiempo final: ", time.time()-timeini)
         listaFiles = list(x.keys())
-        cluster0 = []
-        cluster1 = []
+        clusters={}
         for i in range(len(listaFiles)):
-            if z[i] == 0:
-                cluster0.append(listaFiles[i])
+            if z[i] in clusters:
+                clusters[z[i]].append(listaFiles[i])
             else:
-                cluster1.append(listaFiles[i])
+                clusters[z[i]]=[listaFiles[i]]
 
-        print("Cluster 0: ", cluster0)
-        print("Cluster 1: ", cluster1)
+        for i in clusters:
+            print ("Cluster "+str(i)+" ",clusters[i])
+
+        
