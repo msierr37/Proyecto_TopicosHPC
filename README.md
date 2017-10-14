@@ -34,7 +34,7 @@ http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-meas
 ![Comando HTOP corriendo el programa en paralelo](/imagenes/htopParallel.png)
 ![Tiempo de ejecución del programa en paralelo](/imagenes/parallelTime.png)
 # 6.Bibliografía:
-http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
-https://es.wikipedia.org/wiki/K-means
-https://es.wikipedia.org/wiki/%C3%8Dndice_Jaccard
-https://goo.gl/LL4CgA
+1. http://dataconomy.com/2015/04/implementing-the-five-most-popular-similarity-measures-in-python/
+2. https://es.wikipedia.org/wiki/K-means
+3. https://es.wikipedia.org/wiki/%C3%8Dndice_Jaccard
+4. https://goo.gl/LL4CgA
