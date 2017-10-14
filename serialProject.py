@@ -10,7 +10,7 @@ def obtTFiles(rootDir):
         print('Directorio encontrado: %s' % nombreDir)
         for archivo in fileList:
 
-            archivo = open(rootDir + archivo, 'r')
+            file = open(rootDir + archivo, 'r')
 
             #Éstas son las palabras que se deben eliminar de cada archivo que se lee
             stopwords = ["a", "able", "about", "above", "according", "accordingly", "across", "actually", "after",
@@ -71,7 +71,7 @@ def obtTFiles(rootDir):
 
             #En esta parte se lee cada archivo y se verifican las palabras que no hacen parte de las stopwords
             #Además se añaden a una lista las palabras más repetidas de cada archivo.
-            for linea in archivo:
+            for linea in file:
 
                 for palabra in linea.split():
                     palabra = palabra.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-","").replace(".",
@@ -103,9 +103,9 @@ def ft(T):
             for i in range(len(T)):
                 result.append(0)
 
-            archivo = open(rootDir + archivo, 'r')
+            file = open(rootDir + archivo, 'r')
 
-            for linea in archivo:
+            for linea in file:
                 for palabra in linea.split():
                     palabra = palabra.strip().lower().replace(",", "").replace(":", "").replace(";", "").replace("-","").replace(".",
                      "").replace("\"", "").replace("]", "").replace("[", "").replace(")", "").replace("(", "")
