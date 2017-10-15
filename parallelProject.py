@@ -73,12 +73,11 @@ if __name__ == '__main__':
     k = 2
     maxIters = 10
     rootDir = sys.argv[1]
-    T = []
     fileList = []
     if comm.rank == 0:
         fileList = list(os.walk(rootDir))[0][2]
     v = comm.bcast(fileList, root)
-    toSend = []
+    Ttemp = []
     #Se recorren los archivos correspondientes a cada nucleo
     for i in range(comm.rank, len(v), comm.size):
         #print("RANK: ", comm.rank, v[i])
@@ -100,19 +99,19 @@ if __name__ == '__main__':
         sorted_mainwords = sorted(mainwords.items(), key=operator.itemgetter(1))[::-1]
         #Se toman las 10 palabras importantes con mayor número de apariciones y se envian al procesador master
         for i in range(10):
-            toSend.append(sorted_mainwords[i][0])
+            Ttemp.append(sorted_mainwords[i][0])
 
-    recibV = comm.gather(toSend,root)
-    tFinal = []
+    recibV = comm.gather(Ttemp,root)
+    T = []
     #El master une todas las listas de palabras relevantes en una soolasin repetir ninguna
     if comm.rank == 0:
         for i in range(len(recibV)):
-            tFinal.extend([element for element in recibV[i] if element not in tFinal])
+            T.extend([element for element in recibV[i] if element not in T])
     
     #Se envia la lista final a todos los núcleos para que hagan la comparación de cuantas veces está cada
     #una de las palabras importantes sacadas anteriormente en cada documento 
-    w = comm.bcast(tFinal, root)
-    frecuencia = {}
+    w = comm.bcast(T, root)
+    mapaTemp = {}
     for i in range(comm.rank, len(v), comm.size):
         result = []
         for j in range(len(w)):
@@ -127,43 +126,43 @@ if __name__ == '__main__':
                 if word in w:
                     result[w.index(word)] += 1
 
-        frecuencia[v[i]] = result
+        mapaTemp[v[i]] = result
     #El master recibe un diccionario de parte de cada nucleo que contiene como claves el nombre de 
     #los archivos y como valor una lista que dice cuantas veces está cada palabra de T en ese archivo
-    recibFrecuencia = comm.gather(frecuencia,root)
+    recibmapaTemp = comm.gather(mapaTemp,root)
     #se unen los mapas de todos los nucleos para dejar solo uno
-    mapaFinal = {}
+    mapa = {}
     if(comm.rank == 0):
-        for i in range(len(recibFrecuencia)):
-            mapaFinal.update(recibFrecuencia[i])
+        for i in range(len(recibmapaTemp)):
+            mapa.update(recibmapaTemp[i])
 
-    x = comm.bcast(mapaFinal, root)
+    fdt = comm.bcast(mapa, root)
 
-    tam = len(x)
-    matrixC = np.zeros((tam, tam))
-    listaFiles = list(x.keys())
+    tam = len(fdt)
+    matrixI = np.zeros((tam, tam))
+    listaArchi = list(fdt.keys())
     #A cada archivo se le mira la distancia con respecto a los otros llamando la funcion de jacard con cada par de archivos
     for i in range(comm.rank, tam, comm.size):
         for j in range(tam):
-            matrixC[i][j] = 1.0 - (jaccard_similarity(x[listaFiles[i]], x[listaFiles[j]]))
-    recibMatrixC = comm.gather(matrixC, root)
+            matrixI[i][j] = 1.0 - (jaccard_similarity(fdt[listaArchi[i]], fdt[listaArchi[j]]))
+    recibMatrixI = comm.gather(matrixI, root)
     C = []
-    centroids = []
-    matrizFinal = 0
+    centroides = []
+    matrizJaccard = 0
     if comm.rank == 0:
-        for matrix in recibMatrixC:
-            matrizFinal += matrix
-        #print(matrizFinal)
-
+        for matrix in recibMatrixI:
+            matrizJaccard += matrix
+        #print(matrizJaccard)
+   
     #Kmeans
         #se toma el centroide que es un elemento de la matriz de los pesos 
         #osea un vector de n posiciones 
-        centroids = matrizFinal[np.random.choice(np.arange(len(matrizFinal)), k), :]
+        centroides = matrizJaccard[np.random.choice(np.arange(len(matrizJaccard)), k), :]
 
     #Se hace el algoritmo de kmeans maxIters veces
     for i in range(maxIters):
-        mJack = comm.bcast(matrizFinal,root)
-        cent = comm.bcast(centroids, root)
+        mJack = comm.bcast(matrizJaccard,root)
+        cent = comm.bcast(centroides, root)
         tam2 = len(mJack)
         argminList = np.zeros(tam2)
 
@@ -211,17 +210,17 @@ if __name__ == '__main__':
             for i in range(len(recibZ)):
                 for j in range(len(recibZ[i])):
                     centroidesFinales[j] += recibZ[i][j]
-            centroids = centroidesFinales
+            centroides = centroidesFinales
 
     if comm.rank == 0:
         print("Tiempo final: ", time.time()-timeini)
-        listaFiles = list(x.keys())
+        listaArchi = list(fdt.keys())
         clusters={}
-        for i in range(len(listaFiles)):
+        for i in range(len(listaArchi)):
             if z[i] in clusters:
-                clusters[z[i]].append(listaFiles[i])
+                clusters[z[i]].append(listaArchi[i])
             else:
-                clusters[z[i]]=[listaFiles[i]]
+                clusters[z[i]]=[listaArchi[i]]
 
         for i in clusters:
             print ("Cluster "+str(i)+" ",clusters[i])
